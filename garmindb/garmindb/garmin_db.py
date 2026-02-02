@@ -162,14 +162,17 @@ class File(GarminDb.Base, idbutils.DbObject):
     def name_and_id_from_path(cls, pathname):
         """Return the name and id of a file given it's pathname."""
         filename = os.path.basename(pathname)
+        stem = os.path.splitext(filename)[0]
+        # Preserve date-based FIT names (monitoring/sleep) to avoid ID collisions like 2024-01-02.fit -> 2024
+        if re.match(r"^\d{4}[-_]\d{2}[-_]\d{2}", stem) or re.match(r"^\d{8}$", stem):
+            return (stem, filename)
         # first check for file name formats like 123456789_ACTIVITY.fit and 123456789.fit from Garmin Connect
-        found = re.match(r"(\d+).*\.\w+", filename)
+        found = re.match(r"(\d+)", stem)
         if found:
             return (found.group(1), filename)
         # Check for files from a watch with names like SBK82515.FIT
-        found = re.match(r"(.+)\.\w+", filename)
-        if found:
-            return (found.group(1), filename)
+        if stem:
+            return (stem, filename)
         raise GarminDbError_IdNotFound()
 
     @classmethod
